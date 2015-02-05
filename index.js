@@ -39,14 +39,13 @@ var execQuery = function(query) {
   }
 };
 
-var execBeforeSave = function(req, model, beforeSave) {
-  if (!beforeSave) {
-    beforeSave = function(req, model, cb) {
-      cb();
-    };
-  }
+var execBeforeSaves = function(req, model, beforeSaves) {
   return function(cb) {
-    beforeSave(req, model, cb);
+    async.map(beforeSaves, function(beforeSave, callback) {
+      return beforeSave(req, model, callback);
+    }, function(err) {
+      return cb(err);
+    });
   };
 };
 
@@ -206,12 +205,19 @@ Resource.prototype.insert = function (options) {
   var self = this;
 
   options = options || {};
-  options.beforeSave = options.beforeSave || this.options.beforeSave;
+
+  var beforeSaves = [];
+  if (options.beforeSave) {
+    beforeSaves.push(options.beforeSave);
+  }
+  if (this.options.beforeSave) {
+    beforeSaves.push(this.options.beforeSave);
+  }
 
   return function(req, res, next) {
     var model = new self.Model(req.body);
     async.waterfall([
-      execBeforeSave(req, model, options.beforeSave),
+      execBeforeSaves(req, model, beforeSaves),
       execSave(model),
       setLocationHeader(req, res),
       emitEvent(self, 'insert'),
@@ -224,7 +230,14 @@ Resource.prototype.update = function (options) {
   var self = this;
 
   options = options || {};
-  options.beforeSave = options.beforeSave || this.options.beforeSave;
+  
+  var beforeSaves = [];
+  if (options.beforeSave) {
+    beforeSaves.push(options.beforeSave);
+  }
+  if (this.options.beforeSave) {
+    beforeSaves.push(this.options.beforeSave);
+  }
 
   return function (req, res, next) {
     var query = self.Model.findOne({ _id: req.params.id});
@@ -249,7 +262,7 @@ Resource.prototype.update = function (options) {
       model.set(req.body);
       
       async.waterfall([
-        execBeforeSave(req, model, options.beforeSave),
+        execBeforeSaves(req, model, beforeSaves),
         execSave(model),
         setLocationHeader(req, res),
         emitEvent(self, 'update'),
