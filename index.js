@@ -41,7 +41,7 @@ var execQuery = function(query) {
 
 var execBeforeSaves = function(req, model, beforeSaves) {
   return function(cb) {
-    async.map(beforeSaves, function(beforeSave, callback) {
+    async.mapSeries(beforeSaves, function(beforeSave, callback) {
       return beforeSave(req, model, callback);
     }, function(err) {
       return cb(err);
@@ -207,11 +207,11 @@ Resource.prototype.insert = function (options) {
   options = options || {};
 
   var beforeSaves = [];
-  if (options.beforeSave) {
-    beforeSaves.push(options.beforeSave);
-  }
   if (this.options.beforeSave) {
     beforeSaves.push(this.options.beforeSave);
+  }
+  if (options.beforeSave) {
+    beforeSaves.push(options.beforeSave);
   }
 
   return function(req, res, next) {
@@ -232,11 +232,11 @@ Resource.prototype.update = function (options) {
   options = options || {};
   
   var beforeSaves = [];
-  if (options.beforeSave) {
-    beforeSaves.push(options.beforeSave);
-  }
   if (this.options.beforeSave) {
     beforeSaves.push(this.options.beforeSave);
+  }
+  if (options.beforeSave) {
+    beforeSaves.push(options.beforeSave);
   }
 
   return function (req, res, next) {
