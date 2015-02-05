@@ -130,6 +130,12 @@ var Resource = function (Model, options) {
   this.options.detailProjection = this.options.detailProjection || function (req, item, cb) {
     cb(null, item);
   };
+  this.options.updateProjection = this.options.updateProjection || function (req, item, cb) {
+    cb(null, item);
+  };
+  this.options.insertProjection = this.options.insertProjection || function (req, item, cb) {
+    cb(null, item);
+  };
 };
 
 util.inherits(Resource, EventEmitter);
@@ -214,12 +220,15 @@ Resource.prototype.insert = function (options) {
     beforeSaves.push(options.beforeSave);
   }
 
+  options.projection = options.projection || this.options.insertProjection;
+
   return function(req, res, next) {
     var model = new self.Model(req.body);
     async.waterfall([
       execBeforeSaves(req, model, beforeSaves),
       execSave(model),
       setLocationHeader(req, res),
+      buildProjection(req, options.projection),
       emitEvent(self, 'insert'),
       sendData(res)
     ], next);
@@ -238,6 +247,8 @@ Resource.prototype.update = function (options) {
   if (options.beforeSave) {
     beforeSaves.push(options.beforeSave);
   }
+
+  options.projection = options.projection || this.options.updateProjection;
 
   return function (req, res, next) {
     var query = self.Model.findOne({ _id: req.params.id});
@@ -265,6 +276,7 @@ Resource.prototype.update = function (options) {
         execBeforeSaves(req, model, beforeSaves),
         execSave(model),
         setLocationHeader(req, res),
+        buildProjection(req, options.projection),
         emitEvent(self, 'update'),
         sendData(res)
       ], next);
