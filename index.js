@@ -160,6 +160,17 @@ Resource.prototype.query = function (options) {
       }
     }
 
+    if (options.populates) {
+      for (var path in options.populates) {
+        query = query.populate(
+          path,
+          options.populates[path].select,
+          options.populates[path].model,
+          options.populates[path].match
+        );
+      }
+    }
+
     if (req.query.sort) {
       query = query.sort(req.query.sort);
     }
@@ -196,6 +207,21 @@ Resource.prototype.detail = function (options) {
 
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
+    }
+
+    if (options.populates) {
+      for (var path in options.populates) {
+        query = query.populate(
+          path,
+          options.populates[path].select,
+          options.populates[path].model,
+          options.populates[path].match
+        );
+      }
+    }
+
+    if (req.query.select) {
+      query = query.select(req.query.select);
     }
 
     async.waterfall([
